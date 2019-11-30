@@ -17,10 +17,11 @@ The data you will be using comes from the Assistments online intelligent tutorin
 
 ## Start by uploading the data
 ```{r}
-D1 <- 
+D1 <- read.csv("Assistments-confidence.csv")
 
   #We won't need the id variable, so remove that.
 
+D1 <- D1[, -1]
 
 ```
 
@@ -28,14 +29,13 @@ D1 <-
 
 ```{r}
 #You can install the corrplot package to plot some pretty correlation matrices (sometimes called correlograms)
-
+#install.packages("corrplot")
 library(corrplot)
 
 #Generate pairwise correlations
 COR <- cor(D1)
 
-corrplot(COR, order="AOE", method="circle", tl.pos="lt", type="upper",        
-tl.col="black", tl.cex=0.6, tl.srt=45, 
+corrplot1 <- corrplot(COR, order="AOE", method="circle", tl.pos="lt", type="upper",        tl.col="black", tl.cex=0.6, tl.srt=45, 
         addCoef.col="black", addCoefasPercent = TRUE,
         sig.level=0.50, insig = "blank")
 
@@ -45,10 +45,14 @@ tl.col="black", tl.cex=0.6, tl.srt=45,
 ## Create a new data frame with the mean_correct variables removed
 
 ```{r}
-D2 <- 
+D2 <- D1[,-4]
 
-#The, scale and center your data for easier interpretation
-D2 <- scale(D2, center = TRUE)
+#Then, scale and center your data for easier interpretation
+D2 <- scale(D2, center = TRUE) # turns into matrix from dataframe
+
+# Convert D2 back into a dataframe
+D2 <- as.data.frame(D2)
+
 ```
 
 ## Now run the PCA on the new data frame
@@ -73,16 +77,22 @@ summary(pca)
 #We can look at this to get an idea of which components we should keep and which we should drop
 
 plot(pca, type = "lines")
+
 ```
+#6 components - linear combinations of variables
+#multiply each person PC1
+#components and variance in each one
 
 ## Decide which components you would drop and remove them from your data set.
+#I decided to drop the PC6
 
 ## Part II
 
 ```{r}
 #Now, create a data frame of the transformed data from your pca.
 
-D3 <- 
+#Weighted values. Decided that PC1 should be the only eigenvector included
+D3 <- pca$x
 
 #Attach the variable "mean_correct" from your original data frame to D3.
 
@@ -90,17 +100,46 @@ D4 <- cbind(D3, as.data.frame(D1$mean_correct))
 
 #Now re-run your scatterplots and correlations between the transformed data and mean_correct. If you had dropped some components would you have lost important infomation about mean_correct?
 
-COR2 <- 
+COR2 <- cor(D4)
+
+corrplot2 <- corrplot(COR2, order="AOE", method="circle", tl.pos="lt", type="upper",        tl.col="black", tl.cex=0.6, tl.srt=45, 
+        addCoef.col="black", addCoefasPercent = TRUE,
+        sig.level=0.50, insig = "blank")
+
+###
+#The, scale and center your data for easier interpretation
+D4 <- scale(D4, center = TRUE) # turns into matrix from dataframe
+
+# Convert D2 back into a dataframe
+D4 <- as.data.frame(D4)
+
+pca1 <- prcomp(D4, scale = TRUE)
+
+pca1$sdev
+
+#To convert this into variance accounted for we can square it, these numbers are proportional to the eigenvalue
+
+pca1$sdev^2
+
+#A summary of our pca will give us the proportion of variance accounted for by each component
+
+summary(pca1)
+
+#We can look at this to get an idea of which components we should keep and which we should drop
+
+plot(pca1, type = "lines")
+
+# Yes, if I had dropped PC6, I would you have lost important infomation about mean_correct?
 
 ```
 ## Now print out the eigenvectors (often called loadings) for the components you generated:
 
 ```{r}
-pca$rotation
+pca1$rotation
 
 #Examine the eigenvectors, notice that they are a little difficult to interpret. It is much easier to make sense of them if we make them proportional within each component
 
-loadings <- abs(pca$rotation) #abs() will make all eigenvectors positive
+loadings <- abs(pca1$rotation) #abs() will make all eigenvectors positive
 
 sweep(loadings, 2, colSums(loadings), "/") #sweep() computes each row as a proportion of the column. (There must be a way to do this with dplyr()?)
 
@@ -108,7 +147,7 @@ sweep(loadings, 2, colSums(loadings), "/") #sweep() computes each row as a propo
 
 #You can generate a biplot to help you, though these can be a bit confusing. They plot the transformed data by the first two components. Therefore, the axes represent the direction of maximum variance. Then mapped onto this point cloud are the original directions of the variables, depicted as red arrows. It is supposed to provide a visualization of which variables "go together". Variables that possibly represent the same underlying construct point in the same direction.  
 
-biplot(pca)
+biplot(pca1)
 
 #Calculate values for each student that represent these your composite variables and then create a new correlogram showing their relationship to mean_correct.
 
@@ -116,4 +155,52 @@ biplot(pca)
 # Part III  
 
 ## Also in this repository is a data set collected from class that shows how many students thought that a TC program was related to andother TC program. Use PCA to look for components of related programs. Explain why you think there are relationships between these programs.
+
+
+```{r}
+D5 <-read.csv("TCprograms.csv",header=TRUE,stringsAsFactor=FALSE,sep="")
+
+row.names(D5) <- D5$program
+
+D5$program <- NULL
+
+# transform the dataframe into a correlation matrix
+COR3 <- cor(D5)
+
+corrplot3 <- corrplot(COR3, order = "AOE", method = "circle", tl.pos = "ld", type = "lower", tl.col = "blue", tl.cex = 0.6, tl.srt = 45, addCoefasPercent = TRUE, sig.level=0.50, insig = "blank")
+
+```
+
+```{r}
+#Run the PCA on the new data frame
+pca2 <- prcomp(D5, scale = TRUE)
+
+summary(pca2)
+```
+
+```{r}
+plot(pca2, type = "lines")
+
+```
+
+```{r}
+#create a data frame of the transformed data from  pca2.
+D6 <- data.frame(pca2[["x"]])
+
+pca2$rotation
+
+```
+
+```{r}
+loadings2 <- abs(pca2$rotation) #abs() will make all eigenvectors positive
+
+D7 <- data.frame(sweep(loadings2, 2, colSums(loadings2), "/"))
+
+# CONCLUSION: Disciplines might be clustered according to the extent respondents believe they share elements. For example, respondents might believe that Physiology is "science", School.Principals is "leadership", Economics.and.Educatiom is "policy", etc. Such reasoning would associate Neuroscience with "science" and cluster it with Physiology as opposed to with School.Principals. However, it's also possible that respondents clustered disciplines according to the sound of the word rather than inferring content covered. Thus, Kinesioogy and Psychology — both with suffix "ology" — might be clustered more based on similar sound than similar academic content. 
+
+```
+
+```{r}
+
+```
 
