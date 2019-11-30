@@ -1,6 +1,7 @@
 ---
 title: "Principle Component Aanalysis"
 output: html_document
+Bernell Downer
 ---
 ## Data
 The data you will be using comes from the Assistments online intelligent tutoring system (https://www.assistments.org/). It describes students working through online math problems. Each student has the following data associated with them:
